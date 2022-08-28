@@ -5,6 +5,11 @@ const app = express();
 
 const full_book = JSON.parse(fs.readFileSync(`${__dirname}/full.json`));
 
+const bookNameNormalizer = (book) => {
+  const capitalized = book.charAt(0).toUpperCase() + book.slice(1);
+  return capitalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
 //Handling bad requests with specific messages
 const bookChecker = (book, res) => {
   if (!full_book.hasOwnProperty(book)) {
@@ -60,14 +65,14 @@ const successHandler = (res, data) => {
 app.get('/api/v1/LSG', (req, res) => successHandler(res, full_book));
 
 app.get('/api/v1/LSG/:book?', (req, res) => {
-  const book = req.params.book;
+  const book = bookNameNormalizer(req.params.book);
 
   bookChecker(book, res);
   successHandler(res, full_book[book]);
 });
 
 app.get('/api/v1/LSG/:book?/:chpt?', (req, res) => {
-  const book = req.params.book;
+  const book = bookNameNormalizer(req.params.book);
   const chapter = parseInt(req.params.chpt);
 
   chapterChecker(book, chapter, res);
@@ -75,7 +80,7 @@ app.get('/api/v1/LSG/:book?/:chpt?', (req, res) => {
 });
 
 app.get('/api/v1/LSG/:book?/:chpt?/:verse', (req, res) => {
-  const book = req.params.book;
+  const book = bookNameNormalizer(req.params.book);
   const chapter = parseInt(req.params.chpt);
   const verse = parseInt(req.params.verse) - 1;
 
