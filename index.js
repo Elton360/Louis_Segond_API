@@ -10,7 +10,14 @@ const bookNameNormalizer = (book) => {
   return capitalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 };
 
-//Handling bad requests with specific messages
+// const keys = Object.keys(full_book);
+// const obj = {};
+
+// keys.forEach((key) => {
+//   obj[key] = Object.values(full_book[key]);
+// });
+
+//Handling bad/incomplete requests with specific messages
 const bookChecker = (book, res) => {
   if (!full_book.hasOwnProperty(book)) {
     return res.status(404).json({
@@ -23,11 +30,7 @@ const bookChecker = (book, res) => {
 const chapterChecker = (book, chapter, res) => {
   bookChecker(book);
 
-  if (
-    isNaN(chapter) ||
-    chapter < 1 ||
-    chapter > Object.keys(full_book[book]).length
-  ) {
+  if (isNaN(chapter) || chapter < 0 || chapter > full_book[book].length) {
     return res.status(404).json({
       status: 'fail',
       message: `${
@@ -40,11 +43,7 @@ const chapterChecker = (book, chapter, res) => {
 const verseChecker = (verse, book, chapter, res) => {
   chapterChecker(book, chapter, res);
 
-  if (
-    isNaN(verse) ||
-    verse < 0 ||
-    verse > full_book[book][`chapter${chapter}`].length
-  ) {
+  if (isNaN(verse) || verse < 0 || verse > full_book[book][chapter].length) {
     return res.status(404).json({
       status: 'fail',
       message: `${
@@ -53,6 +52,13 @@ const verseChecker = (verse, book, chapter, res) => {
     });
   }
 };
+
+app.get('/', (req, res) =>
+  res.send(
+    '<p>Incomplete request, please refer to the documentations at:</p>\
+    <a href = "https//:eltonlucien.com">Documentations</a>'
+  )
+);
 
 //Handles all successfull requests dynamically
 const successHandler = (res, data) => {
@@ -73,20 +79,20 @@ app.get('/api/v1/LSG/:book?', (req, res) => {
 
 app.get('/api/v1/LSG/:book?/:chpt?', (req, res) => {
   const book = bookNameNormalizer(req.params.book);
-  const chapter = parseInt(req.params.chpt);
+  const chapter = parseInt(req.params.chpt) - 1;
 
   chapterChecker(book, chapter, res);
-  successHandler(res, full_book[book][`chapter${chapter}`]);
+  successHandler(res, full_book[book][chapter]);
 });
 
 app.get('/api/v1/LSG/:book?/:chpt?/:verse', (req, res) => {
   const book = bookNameNormalizer(req.params.book);
-  const chapter = parseInt(req.params.chpt);
+  const chapter = parseInt(req.params.chpt) - 1;
   const verse = parseInt(req.params.verse) - 1;
 
   verseChecker(verse, book, chapter, res);
 
-  successHandler(res, full_book[book][`chapter${chapter}`][verse]);
+  successHandler(res, full_book[book][chapter][verse]);
 });
 
-app.listen(7777, () => console.log('Running on the holy port!'));
+app.listen(7777, '0.0.0.0', () => console.log('Running on the holy port!'));
